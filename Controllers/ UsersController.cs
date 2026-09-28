@@ -2,11 +2,10 @@ using api.Models;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
-
+using System.Text.Json;
 namespace api.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
+[Route("api")]
 public class UsersController : ControllerBase
 {
     private readonly IMongoCollection<User> _users;
@@ -17,9 +16,11 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(User user)
+    public async Task<IActionResult> Create([FromBody] User user)
     {
+      
         await _users.InsertOneAsync(user);
+        //Console.WriteLine(JsonSerializer.Serialize(user));
 
         return Ok(user);
     }
@@ -49,7 +50,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, User user)
+    public async Task<IActionResult> Update(string id, [FromBody] User user)
     {
         var objectId = new ObjectId(id);
 

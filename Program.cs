@@ -1,5 +1,5 @@
 using MongoDB.Driver;
-
+using api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // MongoDB
@@ -50,6 +50,9 @@ builder.Services.AddSwaggerGen();
 // Controllers
 builder.Services.AddControllers();
 
+// Cloudinary
+builder.Services.AddSingleton<CloudinaryService>();
+
 var app = builder.Build();
 
 // Swagger
@@ -59,6 +62,7 @@ app.UseSwaggerUI();
 // CORS
 app.UseCors("AllowAll");
 
+//Authentication and Authorization
 app.UseAuthorization();
 
 // Controllers
