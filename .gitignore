@@ -1,0 +1,39 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# Rider
+.idea/
+
+# Test
+TestResults/
+*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Logs
+*.log
+
+# ASP.NET configuration / secrets
+appsettings.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,17 @@
+namespace api.Models;
+
+public enum Gender
+{
+    Male,
+    Female,
+    Other
+}
+
+public class User
+{
+    public string Name { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public Gender Gender { get; set; }
+    public DateTime Dob { get; set; }
+    public string Address { get; set; } = string.Empty;
+}
