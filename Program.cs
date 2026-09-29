@@ -82,6 +82,9 @@ builder.Services.AddScoped<CloudinaryService>();
 // Jwt Service
 builder.Services.AddScoped<JwtService>();
 
+// HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Authentication and Authorization
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

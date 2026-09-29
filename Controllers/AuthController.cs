@@ -84,7 +84,7 @@ public class AuthController : ControllerBase
 
 
     [HttpPost("signin")]
-    public async Task<IActionResult> Signin([FromBody] LoginRequest req)
+    public async Task<IActionResult> Signin([FromBody] LoginRequest req, [FromServices] IHttpContextAccessor httpContextAccessor)
     {
         var existingUser = await _users.Find(x => x.Email == req.Email).FirstOrDefaultAsync();
 
@@ -120,12 +120,19 @@ public class AuthController : ControllerBase
         _jwtService.GenerateAccessToken(existingUser);
 
         var refreshToken =
-            _jwtService.GenerateRefreshToken();
+            _jwtService.GenerateRefreshToken(existingUser);
+
+        httpContextAccessor.HttpContext?.Response.Cookies.Append(
+            "accessToken",
+            accessToken);
+
+        httpContextAccessor.HttpContext?.Response.Cookies.Append(
+            "refreshToken",
+            refreshToken);
 
         return Ok(new
         {
             accessToken,
-            refreshToken,
             user = new
             {
                 existingUser.Id,

@@ -51,10 +51,36 @@ public class JwtService
     }
 
     // Refresh Token
-    public string GenerateRefreshToken()
+    public string GenerateRefreshToken(User user)
     {
-        var bytes = RandomNumberGenerator.GetBytes(64);
+        var claims = new[]
+ {
+        new Claim(
+            ClaimTypes.NameIdentifier,
+            user.Id!
+        )
+    };
 
-        return Convert.ToBase64String(bytes);
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!)
+        );
+
+        var credentials = new SigningCredentials(
+            key,
+            SecurityAlgorithms.HmacSha256
+        );
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+             expires: DateTime.UtcNow.AddMinutes(
+                int.Parse(_config["Jwt:RefreshTokenExpiryDays"]!)
+            ),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler()
+            .WriteToken(token);
     }
 }
