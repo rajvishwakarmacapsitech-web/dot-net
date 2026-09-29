@@ -1,5 +1,10 @@
 using MongoDB.Driver;
 using api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // MongoDB
@@ -45,13 +50,57 @@ builder.Services.AddCors(options =>
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] =
+                new List<string>()
+        });
+});
 
 // Controllers
 builder.Services.AddControllers();
 
 // Cloudinary
-builder.Services.AddSingleton<CloudinaryService>();
+builder.Services.AddScoped<CloudinaryService>();
+
+// Jwt Service
+builder.Services.AddScoped<JwtService>();
+
+// Authentication and Authorization
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:Secret"]!
+                )
+            )
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -63,6 +112,7 @@ app.UseSwaggerUI();
 app.UseCors("AllowAll");
 
 //Authentication and Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Controllers

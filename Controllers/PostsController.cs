@@ -41,8 +41,6 @@ public class PostsController : ControllerBase
             PostUrl = imageUrl
         };
 
-        Console.WriteLine(post);
-        //Console.WriteLine(post);
 
         await _posts.InsertOneAsync(post);
 
