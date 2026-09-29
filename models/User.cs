@@ -28,17 +28,17 @@ public class User
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
+    public required string Name { get; set; }
+    public required string Phone { get; set; }
     public Gender Gender { get; set; }
     public DateTime Dob { get; set; }
-    public string Address { get; set; } = string.Empty;
+    public string? Address { get; set; }
     [Required]
     [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public required string Email { get; set; }
     [Required]
     [MinLength(8)]
-    public string password { get; set; } = string.Empty;
+    public required string password { get; set; }
     public bool isEmailVerified { get; set; } = false;
     public UserStatus Status { get; set; } = UserStatus.Active;
     public UserRole Role { get; set; } = UserRole.User;

@@ -1,11 +1,13 @@
 using api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Text.Json;
+
 namespace api.Controllers;
 
-[Route("api")]
+[Authorize(Roles = "Admin")]
+[Route("api/users")]
 public class UsersController : ControllerBase
 {
     private readonly IMongoCollection<User> _users;
@@ -18,9 +20,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] User user)
     {
-      
         await _users.InsertOneAsync(user);
-        //Console.WriteLine(JsonSerializer.Serialize(user));
 
         return Ok(user);
     }
@@ -32,7 +32,6 @@ public class UsersController : ControllerBase
 
         return Ok(users);
     }
-
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
@@ -50,7 +49,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] User user)
+    public async Task<IActionResult> Update(
+        string id,
+        [FromBody] User user)
     {
         var objectId = new ObjectId(id);
 
@@ -71,7 +72,6 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
-
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -87,6 +87,33 @@ public class UsersController : ControllerBase
         return Ok(new
         {
             message = "User deleted successfully"
+        });
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(
+    string id,
+    [FromBody] UserStatus status)
+    {
+        var objectId = new ObjectId(id);
+
+        var filter = Builders<User>.Filter.Eq("_id", objectId);
+
+        var update = Builders<User>.Update
+            .Set(u => u.Status, status);
+
+        var result = await _users.UpdateOneAsync(filter, update);
+
+        if (result.MatchedCount == 0)
+            return NotFound(new
+            {
+                message = "User not found."
+            });
+
+        return Ok(new
+        {
+            message = "User status updated successfully.",
+            status
         });
     }
 }

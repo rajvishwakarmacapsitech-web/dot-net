@@ -6,6 +6,8 @@ using Microsoft.OpenApi;
 using System.Text;
 using api.Models;
 using System.Security.Claims;
+using System.Text.Json;
+using MongoDB.Bson;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,7 +126,6 @@ builder.Services
                     .Find(x => x.Id == userId)
                     .FirstOrDefaultAsync();
 
-                Console.WriteLine($"User found---->>>>: {user}");
 
                 if (user == null)
                 {
