@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
+using api.Models;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,7 +81,8 @@ builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<JwtService>();
 
 // Authentication and Authorization
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -98,8 +101,61 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 )
             )
         };
-    });
 
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var database = context.HttpContext.RequestServices
+                    .GetRequiredService<IMongoDatabase>();
+
+                var users = database.GetCollection<User>("users");
+
+                var userId = context.Principal?
+                    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    context.Fail("Invalid user.");
+                    return;
+                }
+
+                var user = await users
+                    .Find(x => x.Id == userId)
+                    .FirstOrDefaultAsync();
+
+                Console.WriteLine($"User found---->>>>: {user}");
+
+                if (user == null)
+                {
+                    context.Fail("User not found.");
+                    return;
+                }
+
+                if (user.Status == UserStatus.Inactive)
+                {
+                    context.Fail("User is inactive.");
+                    return;
+                }
+
+                if (!user.isEmailVerified)
+                {
+                    context.Fail("Email is not verified.");
+                    return;
+                }
+
+                var identity = context.Principal?.Identity as ClaimsIdentity;
+
+                identity?.AddClaim(
+                    new Claim(
+                        ClaimTypes.Role,
+                        user.Role.ToString()
+                    )
+                );
+            }
+        };
+    });
+// Authorization
 builder.Services.AddAuthorization();
 
 var app = builder.Build();

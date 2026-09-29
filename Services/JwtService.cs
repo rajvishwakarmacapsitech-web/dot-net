@@ -24,11 +24,6 @@ public class JwtService
             new Claim(
                 ClaimTypes.NameIdentifier,
                 user.Id!
-            ),
-
-            new Claim(
-                ClaimTypes.Role,
-                user.Role.ToString()
             )
         };
 
