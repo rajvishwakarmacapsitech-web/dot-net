@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Security.Claims;
 
 namespace api.Controllers;
 
@@ -14,6 +15,8 @@ public class PostsController : ControllerBase
 {
     private readonly IMongoCollection<Post> _posts;
     private readonly CloudinaryService _cloudinary;
+    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+    private bool IsAdmin => User.IsInRole(nameof(UserRole.Admin));
 
     public PostsController(
         IMongoDatabase database,
@@ -29,6 +32,10 @@ public class PostsController : ControllerBase
     public async Task<IActionResult> Create(
         [FromForm] CreatePostRequest request)
     {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
         string imageUrl = string.Empty;
 
         if (request.Image != null)
@@ -41,7 +48,7 @@ public class PostsController : ControllerBase
         {
             Title = request.Title,
             Description = request.Content,
-            UserId = request.UserId ?? string.Empty,
+            UserId = userId,
             PostUrl = imageUrl
         };
 
@@ -54,8 +61,11 @@ public class PostsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
+        var filter = IsAdmin
+            ? Builders<Post>.Filter.Empty
+            : Builders<Post>.Filter.Eq(post => post.UserId, CurrentUserId);
         var posts = await _posts
-            .Find(_ => true)
+            .Find(filter)
             .ToListAsync();
 
         return Ok(posts);
@@ -69,7 +79,7 @@ public class PostsController : ControllerBase
             return BadRequest(new { message = "Invalid post id." });
 
         var post = await _posts
-            .Find(Builders<Post>.Filter.Eq("_id", objectId))
+            .Find(BuildPostFilter(objectId))
             .FirstOrDefaultAsync();
 
         if (post == null)
@@ -88,7 +98,7 @@ public class PostsController : ControllerBase
         if (!ObjectId.TryParse(id, out var objectId))
             return BadRequest(new { message = "Invalid post id." });
 
-        var filter = Builders<Post>.Filter.Eq("_id", objectId);
+        var filter = BuildPostFilter(objectId);
 
         var post = await _posts
             .Find(filter)
@@ -99,8 +109,7 @@ public class PostsController : ControllerBase
 
         var update = Builders<Post>.Update
             .Set(x => x.Title, request.Title)
-            .Set(x => x.Description, request.Content)
-            .Set(x => x.UserId, request.UserId ?? string.Empty);
+            .Set(x => x.Description, request.Content);
 
         if (request.Image != null)
         {
@@ -128,7 +137,7 @@ public class PostsController : ControllerBase
         if (!ObjectId.TryParse(id, out var objectId))
             return BadRequest(new { message = "Invalid post id." });
 
-        var filter = Builders<Post>.Filter.Eq("_id", objectId);
+        var filter = BuildPostFilter(objectId);
 
         var result = await _posts.DeleteOneAsync(filter);
 
@@ -139,5 +148,15 @@ public class PostsController : ControllerBase
         {
             message = "Post deleted successfully."
         });
+    }
+
+    private FilterDefinition<Post> BuildPostFilter(ObjectId objectId)
+    {
+        var filters = Builders<Post>.Filter;
+        var postIdFilter = filters.Eq("_id", objectId);
+
+        return IsAdmin
+            ? postIdFilter
+            : filters.And(postIdFilter, filters.Eq(post => post.UserId, CurrentUserId));
     }
 }
